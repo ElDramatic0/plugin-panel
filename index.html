@@ -2,52 +2,109 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Licencias - PluginSeguridad</title>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; }
-        .box { background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 350px; }
-        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: none; }
-        button { background: #3b82f6; color: white; font-weight: bold; cursor: pointer; }
-        #keyDisplay { background: #334155; padding: 10px; border: 1px dashed #94a3b8; word-break: break-all; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background-color: #1e293b; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #3b82f6; margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: #94a3b8; }
+        input, select { width: 100%; padding: 0.75rem; margin-bottom: 1.25rem; border-radius: 0.5rem; border: 1px solid #334155; background-color: #0f172a; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 0.75rem; border-radius: 0.5rem; border: none; background-color: #2563eb; color: white; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #1d4ed8; }
+        #result { margin-top: 1.5rem; padding: 1rem; border-radius: 0.5rem; background-color: #334155; border: 1px dashed #64748b; display: none; text-align: center; }
+        .key-text { font-family: monospace; color: #4ade80; font-size: 1.1rem; display: block; margin-top: 0.5rem; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h3>Generador de Licencias</h3>
-        <input type="text" id="owner" placeholder="Nombre del cliente">
-        <select id="months">
-            <option value="1">1 Mes</option>
-            <option value="3">3 Meses</option>
-            <option value="6">6 Meses</option>
-            <option value="12">12 Meses</option>
-        </select>
-        <button onclick="generate()">Generar Código</button>
-        <div id="keyDisplay" style="display:none"></div>
+
+<div class="container">
+    <h2>Generador de Licencias</h2>
+    
+    <label for="owner">Nombre del Comprador</label>
+    <input type="text" id="owner" placeholder="Ej: JuanPerez123">
+
+    <label for="months">Duración de la Suscripción</label>
+    <select id="months">
+        <option value="1">1 Mes</option>
+        <option value="3">3 Meses</option>
+        <option value="6">6 Meses</option>
+        <option value="9">9 Meses</option>
+        <option value="12">12 Meses</option>
+    </select>
+
+    <button onclick="generateLicense()">Generar y Guardar en DB</button>
+
+    <div id="result">
+        <span>¡Licencia creada con éxito!</span>
+        <strong class="key-text" id="licenseDisplay"></strong>
+        <small style="color: #94a3b8; display:block; margin-top:0.5rem;">Copia este código en tu config.yml</small>
     </div>
+</div>
 
-    <script>
-        async function generate() {
-            const key = "KEY-" + Math.random().toString(36).substring(2, 12).toUpperCase();
-            const months = document.getElementById('months').value;
-            const owner = document.getElementById('owner').value;
+<script>
+    // CONFIGURACIÓN DE TU SUPABASE (Reemplaza con tus datos reales)
+    const SUPABASE_URL = "https://TU_PROYECTO.supabase.co";
+    const SUPABASE_ANON_KEY = "TU_ANON_KEY_DE_SUPABASE";
+    const MASTER_KEY = "TU_PASSWORD_SECRETO"; // Cambia esto por tu contraseña de admin
 
-            const res = await fetch('https://TU_ID.supabase.co/rest/v1/licencias', {
+    async function generateLicense() {
+        const ownerName = document.getElementById('owner').value;
+        const duration = document.getElementById('months').value;
+
+        if (!ownerName) {
+            alert("Por favor, ingresa el nombre del comprador.");
+            return;
+        }
+
+        // 1. Pedir la Clave Maestra antes de proceder
+        const pass = prompt("Introduce la Clave Maestra para autorizar:");
+        if (pass !== MASTER_KEY) {
+            alert("Acceso denegado. Clave incorrecta.");
+            return;
+        }
+
+        // 2. Generar código aleatorio seguro
+        const randomString = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const generatedKey = `PREM-${duration}M-${randomString}`;
+
+        try {
+            // 3. Enviar a Supabase vía API REST
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/licencias`, {
                 method: 'POST',
                 headers: {
-                    'apikey': 'TU_ANON_KEY',
-                    'Authorization': 'Bearer TU_ANON_KEY',
-                    'Content-Type': 'application/json'
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
                 },
                 body: JSON.stringify({
-                    key_code: key, duracion_meses: parseInt(months), owner_name: owner
+                    key_code: generatedKey,
+                    duracion_meses: parseInt(duration),
+                    owner_name: ownerName,
+                    status: true
+                    // ip_vinculada y fechas se quedan en NULL hasta que se use el plugin
                 })
             });
 
-            if(res.ok) {
-                const el = document.getElementById('keyDisplay');
-                el.style.display = 'block';
-                el.innerText = "Código: " + key;
+            if (response.ok) {
+                const resultDiv = document.getElementById('result');
+                const display = document.getElementById('licenseDisplay');
+                
+                display.innerText = generatedKey;
+                resultDiv.style.display = 'block';
+                alert("Licencia registrada en la base de datos.");
+            } else {
+                const errorData = await response.json();
+                console.error(errorData);
+                alert("Error de Supabase: " + errorData.message);
             }
+        } catch (error) {
+            console.error("Error de conexión:", error);
+            alert("No se pudo conectar con Supabase.");
         }
-    </script>
+    }
+</script>
+
 </body>
 </html>
