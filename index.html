@@ -1,1 +1,53 @@
-<h1>Github pages test</h1>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; }
+        .box { background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 350px; }
+        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: none; }
+        button { background: #3b82f6; color: white; font-weight: bold; cursor: pointer; }
+        #keyDisplay { background: #334155; padding: 10px; border: 1px dashed #94a3b8; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h3>Generador de Licencias</h3>
+        <input type="text" id="owner" placeholder="Nombre del cliente">
+        <select id="months">
+            <option value="1">1 Mes</option>
+            <option value="3">3 Meses</option>
+            <option value="6">6 Meses</option>
+            <option value="12">12 Meses</option>
+        </select>
+        <button onclick="generate()">Generar Código</button>
+        <div id="keyDisplay" style="display:none"></div>
+    </div>
+
+    <script>
+        async function generate() {
+            const key = "KEY-" + Math.random().toString(36).substring(2, 12).toUpperCase();
+            const months = document.getElementById('months').value;
+            const owner = document.getElementById('owner').value;
+
+            const res = await fetch('https://TU_ID.supabase.co/rest/v1/licencias', {
+                method: 'POST',
+                headers: {
+                    'apikey': 'TU_ANON_KEY',
+                    'Authorization': 'Bearer TU_ANON_KEY',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    key_code: key, duracion_meses: parseInt(months), owner_name: owner
+                })
+            });
+
+            if(res.ok) {
+                const el = document.getElementById('keyDisplay');
+                el.style.display = 'block';
+                el.innerText = "Código: " + key;
+            }
+        }
+    </script>
+</body>
+</html>
